@@ -1,2 +1,6 @@
 # prometheus-plotter
-Golang Prometheus graph plotter
+
+## Description
+
+This project will create a image of a prometheus query
+
