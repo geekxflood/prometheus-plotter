@@ -3,14 +3,24 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"time"
 
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/plotutil"
 	"gonum.org/v1/plot/vg"
 )
+
+func parseTime(timeStr string) (int64, error) {
+	t, err := time.Parse("2006-01-02T15:04:05Z", timeStr)
+	if err != nil {
+		return 0, err
+	}
+
+	return t.Unix(), nil
+}
 
 func getData(url string, query string, start int64, end int64) ([]byte, error) {
 	client := http.DefaultClient
@@ -33,7 +43,7 @@ func getData(url string, query string, start int64, end int64) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -49,26 +59,25 @@ func extractData(data []byte) (plotter.XYs, error) {
 	}
 
 	if pd.Status != "success" {
-		return nil, fmt.Errorf("Prometheus returned status '%s'", pd.Status)
+		return nil, fmt.Errorf("prometheus returned status '%s'", pd.Status)
 	}
 
 	if len(pd.Data.Result) == 0 {
-		return nil, fmt.Errorf("No data returned by Prometheus")
+		return nil, fmt.Errorf("no data returned by prometheus")
 	}
 
 	result := pd.Data.Result[0]
-	metric := result.Metric
 	values := result.Values
 
 	pts := make(plotter.XYs, len(values))
 	for i, v := range values {
 		t, ok := v[0].(float64)
 		if !ok {
-			return nil, fmt.Errorf("Invalid timestamp '%v'", v[0])
+			return nil, fmt.Errorf("invalid timestamp '%v'", v[0])
 		}
 		y, ok := v[1].(float64)
 		if !ok {
-			return nil, fmt.Errorf("Invalid value '%v'", v[1])
+			return nil, fmt.Errorf("invalid value '%v'", v[1])
 		}
 		pts[i].X = t
 		pts[i].Y = y
@@ -76,6 +85,7 @@ func extractData(data []byte) (plotter.XYs, error) {
 
 	return pts, nil
 }
+
 func createPlot(data plotter.XYs, title string, xlabel string, ylabel string, filename string) error {
 	p := plot.New()
 
