@@ -14,14 +14,20 @@ import (
 )
 
 func parseTime(timeStr string) (int64, error) {
+	// Parse the time string in the format "2006-01-02T15:04:05Z" (for example,
+	// "2020-05-07T10:00:00Z").  If the time string is not in this format, an
+	// error is returned.
 	t, err := time.Parse("2006-01-02T15:04:05Z", timeStr)
 	if err != nil {
 		return 0, err
 	}
 
+	// Convert the time to a Unix timestamp (the number of seconds since
+	// January 1, 1970 00:00:00 UTC).
 	return t.Unix(), nil
 }
 
+// get the data
 func getData(url string, query string, start int64, end int64) ([]byte, error) {
 	client := http.DefaultClient
 
@@ -51,6 +57,11 @@ func getData(url string, query string, start int64, end int64) ([]byte, error) {
 	return body, nil
 }
 
+// extractData takes a slice of bytes representing a JSON-formatted
+// Prometheus response and returns a plotter.XYs containing the data
+// points. It returns an error if the JSON cannot be unmarshalled, if
+// the response status is not "success", or if the response does not
+// contain any data points.
 func extractData(data []byte) (plotter.XYs, error) {
 	var pd PrometheusData
 	err := json.Unmarshal(data, &pd)
@@ -86,6 +97,11 @@ func extractData(data []byte) (plotter.XYs, error) {
 	return pts, nil
 }
 
+// createPlot creates a plot from the data provided in the data argument.
+// The plot is saved to the file name specified in the filename argument.
+//
+// The title of the plot is specified in the title argument.
+// The labels for the x- and y-axes are specified in the xlabel and ylabel arguments, respectively.
 func createPlot(data plotter.XYs, title string, xlabel string, ylabel string, filename string) error {
 	p := plot.New()
 
